@@ -17,10 +17,7 @@ import org.apache.spark.SparkConf;
 public class MyDecisionTree {
     public static void main(String[] args) {
         System.setProperty("spark.cores.max", "5");
-        SparkConf sparkConf = new SparkConf().setAppName("JavaDecisionTree");
-        //sparkConf.setMaster("spark://c0004653.itcs.hp.com:7077");
-        //sparkConf.setMaster("spark://localhost:7077");
-        sparkConf.setMaster("local");
+        SparkConf sparkConf = new SparkConf().setAppName("JavaDecisionTree").setMaster("local");
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
 
         // Load and parse the data file.
@@ -47,6 +44,7 @@ public class MyDecisionTree {
               return new Tuple2<Double, Double>(model.predict(p.features()), p.label());
             }
           });
+        
         Double trainErr =
           1.0 * predictionAndLabel.filter(new Function<Tuple2<Double, Double>, Boolean>() {
             @Override public Boolean call(Tuple2<Double, Double> pl) {

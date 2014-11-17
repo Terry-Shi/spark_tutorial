@@ -17,7 +17,7 @@ public class CollaborativeFiltering {
         JavaSparkContext sc = new JavaSparkContext(conf);
 
         // Load and parse the data
-        String path = "data/mllib/als/test.data";
+        String path = "data/mllib/als/ratings.dat";
         JavaRDD<String> data = sc.textFile(path);
         JavaRDD<Rating> ratings = data.map(
           new Function<String, Rating>() {
@@ -69,5 +69,6 @@ public class CollaborativeFiltering {
           }
         ).rdd()).mean();
         System.out.println("Mean Squared Error = " + MSE);
+        System.out.println("Model = " + model.predict(1, 1));
       }
 }
