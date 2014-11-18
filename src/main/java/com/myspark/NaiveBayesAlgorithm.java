@@ -44,6 +44,17 @@ public class NaiveBayesAlgorithm {
     public static void main(String[] args) {
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
+        
+        // TODO: 输入数据往往不是数字形式的需要转换  String -> Double.
+        // Question1: 怎么保证一一对应？
+        // 属性1：发件人邮件地址 aaa@hp.com  hashcode() ? MD5 ? or sequence number ?
+        // 属性2：topic ID
+        // 属性3: To OR Cc
+        // Label: reply OR forward OR Delete
+        // Question2: 怎么保存? Use simple Map ?  Use in-memory Database H2 ?
+        
+        
+        
         JavaRDD<String> data = sc.textFile("data/naiveBayes/data.txt");
     // For Java 8 lambda 
     //    RDD<LabeledPoint> parsedData = data.map(line -> {
@@ -55,7 +66,7 @@ public class NaiveBayesAlgorithm {
     //        return new LabeledPoint(Double.parseDouble(parts[0]), Vectors.dense(values));
     //    }).rdd();
         
-        // For Java 7
+        // For Java 7 or below
         RDD<LabeledPoint> parsedData = data.map(new Function<String, LabeledPoint>() {
             public LabeledPoint call(String line) {
                 String[] parts = line.split(",");
@@ -122,7 +133,7 @@ public class NaiveBayesAlgorithm {
     }
     
     public static double evaluation(RDD<LabeledPoint> parsedData) {
-       //分隔为两个部分，70%的数据用于训练，30%的用于测试
+        //分隔为两个部分，70%的数据用于训练，30%的用于测试
         RDD<LabeledPoint>[] splits = parsedData.randomSplit(new double[]{0.7, 0.3}, 11L);
         JavaRDD<LabeledPoint> training = splits[0].toJavaRDD();
         JavaRDD<LabeledPoint> test = splits[1].toJavaRDD();
