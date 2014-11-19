@@ -16,30 +16,14 @@ import org.apache.spark.mllib.regression.LabeledPoint;
 import org.apache.spark.mllib.util.MLUtils;
 import org.apache.spark.rdd.RDD;
 
+import scala.Tuple2;
+
 /**
- * ref:http://blog.selfup.cn/683.html
+ * Ref:http://blog.selfup.cn/683.html
  * @author shijie
- *
+ * TODO: Additive smoothing的值为1.0　含义？
  */
 public class NaiveBayesAlgorithm {
-//    public static void main(String[] args) {
-//    JavaRDD<LabeledPoint> training = ... // training set
-//    JavaRDD<LabeledPoint> test = ... // test set
-//
-//            final NaiveBayesModel model = NaiveBayes.train(training.rdd(), 1.0);
-//
-//            JavaPairRDD<Double, Double> predictionAndLabel = 
-//              test.mapToPair(new PairFunction<LabeledPoint, Double, Double>() {
-//                @Override public Tuple2<Double, Double> call(LabeledPoint p) {
-//                  return new Tuple2<Double, Double>(model.predict(p.features()), p.label());
-//                }
-//              });
-//            double accuracy = 1.0 * predictionAndLabel.filter(new Function<Tuple2<Double, Double>, Boolean>() {
-//                @Override public Boolean call(Tuple2<Double, Double> pl) {
-//                  return pl._1() == pl._2();
-//                }
-//              }).count() / test.count();
-//    }
     
     public static void main(String[] args) {
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
@@ -51,22 +35,48 @@ public class NaiveBayesAlgorithm {
         // 属性2：topic ID
         // 属性3: To OR Cc
         // Label: reply OR forward OR Delete
-        // Question2: 怎么保存? Use simple Map ?  Use in-memory Database H2 ?
+        // Question2: 怎么保存? Use simple Map ?  Use in-memory Database?
+        MapWithSeqValue mayWithSeqValue = new MapWithSeqValue();
+        // TODO: prepare testing data.
         
+        JavaRDD<String> data = sc.textFile("data/naiveBayes/wine.data.txt");
+        //NaiveBayesModel model = createModelWithWineData(data);
         
+        evaluation(formatWineData(data));
         
-        JavaRDD<String> data = sc.textFile("data/naiveBayes/data.txt");
-    // For Java 8 lambda 
-    //    RDD<LabeledPoint> parsedData = data.map(line -> {
-    //        String[] parts = line.split(",");
-    //        double[] values = Arrays.stream(parts[1].split(" "))
-    //              .mapToDouble(Double::parseDouble)
-    //              .toArray();
-    //        // LabeledPoint代表一条训练数据，即打过标签的数据
-    //        return new LabeledPoint(Double.parseDouble(parts[0]), Vectors.dense(values));
-    //    }).rdd();
+        // NaiveBayesModel model = createModelWithDataTxt(sc, sc.textFile("data/naiveBayes/data.txt"));
         
-        // For Java 7 or below
+        // Load from list
+//        List<LabeledPoint> inputData = new ArrayList<LabeledPoint>();
+//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{1, 0, 0})));
+//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{2, 0, 0})));
+//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{1, 0, 0.1})));
+//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{2, 0, 0.2})));
+//        JavaRDD<LabeledPoint> parsedData = sc.parallelize(inputData);
+        
+        // 训练模型， Additive smoothing的值为1.0（默认值）
+//        final NaiveBayesModel model = NaiveBayes.train(training.rdd(), 1.0);
+//        saveModelFile(sc, "data/naiveBayes/model", model);
+        
+        //NaiveBayesModel model = loadModelFile(sc, "data/naiveBayes/model");
+    
+        //predict(model);
+    }
+    
+    
+    /**
+     * Input file format {Label,AttributeA's value AttributeB's value AttributeC's value}
+     * data/naiveBayes/data.txt
+     * // 0,1 0 0
+     * // 0,2 0 0
+     * // 0,1 0 0.1
+     * @param sc
+     * @param path
+     * @return Model
+     */
+    public static NaiveBayesModel createModelWithDataTxt(JavaSparkContext sc, String path) {
+        JavaRDD<String> data = sc.textFile(path);
+       // For Java 7 or below
         RDD<LabeledPoint> parsedData = data.map(new Function<String, LabeledPoint>() {
             public LabeledPoint call(String line) {
                 String[] parts = line.split(",");
@@ -79,41 +89,42 @@ public class NaiveBayesAlgorithm {
                 return new LabeledPoint(Double.parseDouble(parts[0]), Vectors.dense(values));
             }
         }).rdd();
-        
-//        0,1 0 0
-//        0,2 0 0
-//        0,1 0 0.1
-//        0,2 0 0.2
-//        0,1 0.1 0
-//        0,2 0.2 0
-//        1,0 1 0.1
-//        1,0 2 0.2
-//        1,0.1 1 0
-//        1,0.2 2 0
-//        1,0 1 0
-//        1,0 2 0
-//        2,0.1 0 1
-//        2,0.2 0 2
-//        2,0 0.1 1
-//        2,0 0.2 2
-//        2,0 0 1
-//        2,0 0 2        
-        // Load from list
-//        List<LabeledPoint> inputData = new ArrayList<LabeledPoint>();
-//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{1, 0, 0})));
-//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{2, 0, 0})));
-//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{1, 0, 0.1})));
-//        inputData.add(new LabeledPoint(0.0 ,Vectors.dense(new double[]{2, 0, 0.2})));
-//        JavaRDD<LabeledPoint> parsedData = sc.parallelize(inputData);
-        
-        //训练模型， Additive smoothing的值为1.0（默认值）
-//        final NaiveBayesModel model = NaiveBayes.train(training.rdd(), 1.0); // TODO: how to save model, then re-use it.
-//        saveModelFile(sc, "data/naiveBayes/model", model);
-        
-        NaiveBayesModel model = loadModelFile(sc, "data/naiveBayes/model");
-    
-        predict(model);
+        final NaiveBayesModel model = NaiveBayes.train(parsedData, 1.0);
+        return model;
     }
+    
+    
+    
+    /**
+     * wine.data.txt
+     * @param sc
+     * @param path
+     * @return
+     */
+    public static NaiveBayesModel createModelWithWineData(JavaRDD<String> data) {
+        RDD<LabeledPoint> parsedData = formatWineData(data);
+        
+        final NaiveBayesModel model = NaiveBayes.train(parsedData, 1.0);
+        return model;
+    }
+    
+    private static RDD<LabeledPoint> formatWineData(JavaRDD<String> data){
+        RDD<LabeledPoint> parsedData = data.map(new Function<String, LabeledPoint>() {
+            public LabeledPoint call(String line) {
+                String[] parts = line.split(",");
+                
+                double[] values = new double[parts.length -1];
+                for (int i = 1; i < parts.length; i++) {
+                    values[i-1] =  Double.valueOf(parts[i]);
+                }
+                // LabeledPoint代表一条训练数据，即打过标签的数据
+                return new LabeledPoint(Double.parseDouble(parts[0]), Vectors.dense(values));
+            }
+        }).rdd();
+        
+        return parsedData;
+    }
+    
     
     public static void saveModelFile(JavaSparkContext sc, String path, NaiveBayesModel model) {
         JavaRDD<NaiveBayesModel> persistModel = sc.parallelize(Arrays.asList(new NaiveBayesModel[]{model}));
@@ -126,23 +137,49 @@ public class NaiveBayesAlgorithm {
     }
     
     public static void predict(NaiveBayesModel model) {
-        //预测类别
-        System.out.println("Prediction of (0.5, 3.0, 0.5):" + model.predict(Vectors.dense(new double[]{0.5, 3.0, 0.5})));
-        System.out.println("Prediction of (1.5, 0.4, 0.6):" + model.predict(Vectors.dense(new double[]{1.5, 0.4, 0.6})));
-        System.out.println("Prediction of (0.3, 0.4, 2.6):" + model.predict(Vectors.dense(new double[]{0.3, 0.4, 2.6})));
+        // 预测类别 for data.txt
+//        System.out.println("Prediction of (0.5, 3.0, 0.5):" + model.predict(Vectors.dense(new double[]{0.5, 3.0, 0.5})));
+//        System.out.println("Prediction of (1.5, 0.4, 0.6):" + model.predict(Vectors.dense(new double[]{1.5, 0.4, 0.6})));
+//        System.out.println("Prediction of (0.3, 0.4, 2.6):" + model.predict(Vectors.dense(new double[]{0.3, 0.4, 2.6})));
+       
+        // 预测类别 for wine.data.txt
+        System.out.println("Prediction of (14.23,1.71,2.43,15.6,127,2.8,3.06,.28,2.29,5.64,1.04,3.92,1065):" + model.predict(Vectors.dense(new double[]{14.23,1.71,2.43,15.6,127,2.8,3.06,.28,2.29,5.64,1.04,3.92,1065})));
     }
     
+    /**
+     * 用测试数据来验证模型的精度
+     * @param parsedData test data
+     * @return evaluation result
+     */
     public static double evaluation(RDD<LabeledPoint> parsedData) {
+                
         //分隔为两个部分，70%的数据用于训练，30%的用于测试
         RDD<LabeledPoint>[] splits = parsedData.randomSplit(new double[]{0.7, 0.3}, 11L);
         JavaRDD<LabeledPoint> training = splits[0].toJavaRDD();
         JavaRDD<LabeledPoint> test = splits[1].toJavaRDD();
         
-        //    JavaRDD<Double> prediction = test.map(p -> model.predict(p.features()));
-        //    JavaPairRDD<Double, Double> predictionAndLabel = prediction.zip(test.map(LabeledPoint::label));
-        //    //用测试数据来验证模型的精度
-        //    double accuracy = 1.0 * predictionAndLabel.filter(pl -> pl._1().equals(pl._2())).count() / test.count();
-        //    System.out.println("Accuracy=" + accuracy);
+        final NaiveBayesModel model = NaiveBayes.train(training.rdd(), 1.0); 
+        JavaRDD<Double> prediction = test.map(new Function<LabeledPoint, Double>() {
+            @Override
+            public Double call(LabeledPoint v1) throws Exception {
+                return model.predict(v1.features());
+            }
+        });
+        System.out.println("JavaRDD<Double> prediction = " + prediction.toArray().toString());
+        
+        // TODO: http://www.adamcrume.com/blog/archive/2014/02/19/fixing-sparks-rdd-zip
+        JavaPairRDD<Double, LabeledPoint> predictionAndLabel = prediction.zip(test);
+        long matchedNumber = predictionAndLabel.filter(new Function<Tuple2<Double, LabeledPoint>, Boolean>() {
+            @Override
+            public Boolean call(Tuple2<Double, LabeledPoint> v1) throws Exception {
+                return v1._1.equals(v1._2.label());
+            }
+        }).count();
+
+        double accuracy = 1.0 * matchedNumber / test.count();
+        System.out.println("Matched data Number = " + matchedNumber);
+        System.out.println("Total test data is = " + test.count());
+        System.out.println("Accuracy=" + accuracy);
         return accuracy;
     }
 }
