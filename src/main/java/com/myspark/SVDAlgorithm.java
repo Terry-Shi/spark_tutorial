@@ -1,13 +1,19 @@
 package com.myspark;
 
+import java.util.Arrays;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.mllib.feature.HashingTF;
 import org.apache.spark.mllib.feature.IDF;
 import org.apache.spark.mllib.feature.Word2Vec;
 import org.apache.spark.mllib.feature.Word2VecModel;
+import org.apache.spark.mllib.linalg.Vector;
+
+import scala.Tuple2;
 
 
 /**
@@ -17,7 +23,11 @@ import org.apache.spark.mllib.feature.Word2VecModel;
  * 首先，我们可以用一个大矩阵A来描述这一百万篇文章和五十万词的关联性。这个矩阵中，每一行对应一篇文章，每一列对应一个词。
  * 我们只要对关联矩阵A进行一次奇异值分解，我们就可以同时完成了近义词分类和文章的分类。（同时得到每类文章和每类词的相关性）。
  * @author shijie
- * @link http://blog.selfup.cn/1243.html
+ * @link 参考代码 http://blog.selfup.cn/1243.html
+ * https://github.com/apache/spark/tree/master/examples/src/main/java/org/apache/spark/examples/mllib
+ * @link http://lancezhange.com/blog/2014/10/10/word2vec/
+ * @link Word2Vec原理 http://techblog.youdao.com/?p=915
+ * @link http://spark.apache.org/docs/1.1.0/api/java/
  * TODO: 文本向量的获得
  * TODO: 调试SVD代码
  */
@@ -28,28 +38,38 @@ public class SVDAlgorithm {
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
         
-        JavaRDD<String> lines = sc.textFile("data.txt");
+        JavaRDD<String> lines = sc.textFile("data/svd/pg158.txt"); //sc.parallelize(Arrays.asList(new String[]{"China shanghai", "apple","IBM", "HP", "Microsoft"}));
         
         // TF-IDF 
 //        Term Frequency (tf)：即此Term 在此文档中出现了多少次。tf 越大说明越重要。
 //        Document Frequency (df)：即有多少文档包含次Term。df 越大说明越不重要。
-        JavaRDD<String> dataset = lines.map(new Function<String, String>(){
-
+//        JavaRDD<String> dataset = lines.flatMap(new FlatMapFunction<String, String>(){
+//			@Override
+//			public Iterable<String> call(String t) throws Exception {
+//				return Arrays.asList(t.split(" "));
+//			}
+//        });
+        JavaRDD<Iterable<String>> dataset = lines.map(new Function<String, Iterable<String>>(){
 			@Override
-			public String call(String v1) throws Exception {
-				return  ""; //v1.split(" ");
+			public Iterable<String> call(String t) throws Exception {
+				return Arrays.asList(t.split(" "));
 			}
-        	
         });
+        System.out.println(dataset.collect());
 //        HashingTF hashingTF = new HashingTF();
 //        hashingTF.transform(dataset);
 
         IDF idf = new IDF();
         
         Word2Vec word2vec = new Word2Vec();
-        Word2VecModel model = word2vec.fit(dataset.rdd());
+        Word2VecModel model = word2vec.fit(dataset);
+        //Vector vec = model.transform("apple");
+        //System.out.println(vec);
+        Tuple2<String, Object>[] synonyms = model.findSynonyms("Emma", 3);
+        for (int i = 0; i < synonyms.length; i++) {
+        	System.out.println(synonyms[i]._1);
+		}
         
-
+        
     }
-    
 }
