@@ -8,6 +8,8 @@ import org.apache.spark.mllib.regression.LabeledPoint;
 public class DataType {
     public static void main(String[] args) {
         
+        // ------ Vector ------
+        
         // ------ Labeled Point ------
         // Create a labeled point with a positive label and a dense feature vector.
         LabeledPoint pos = new LabeledPoint(1.0, Vectors.dense(1.0, 0.0, 3.0));
