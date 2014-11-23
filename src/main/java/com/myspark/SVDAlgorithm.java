@@ -1,25 +1,28 @@
 package com.myspark;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.mllib.feature.HashingTF;
 import org.apache.spark.mllib.feature.IDF;
+import org.apache.spark.mllib.feature.IDFModel;
 import org.apache.spark.mllib.feature.Word2Vec;
 import org.apache.spark.mllib.feature.Word2VecModel;
-import org.apache.spark.mllib.linalg.Vector;
-import org.apache.spark.api.java.*;
-import org.apache.spark.mllib.linalg.distributed.RowMatrix;
 import org.apache.spark.mllib.linalg.Matrix;
 import org.apache.spark.mllib.linalg.SingularValueDecomposition;
 import org.apache.spark.mllib.linalg.Vector;
-import org.apache.spark.mllib.linalg.Vectors;
+import org.apache.spark.mllib.linalg.distributed.RowMatrix;
 
 import scala.Tuple2;
 
@@ -42,43 +45,83 @@ import scala.Tuple2;
 public class SVDAlgorithm {
         
     public static void main(String[] args) {
-//        SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
-//        SparkContext  sc = new SparkContext (sparkConf);
-//        
-//        double[][] array = new double[][]{{1,2,3}, {4,5,6}};
-//        LinkedList<Vector> rowsList = new LinkedList<Vector>();
-//        for (int i = 0; i < array.length; i++) {
-//          Vector currentRow = Vectors.dense(array[i]);
-//          rowsList.add(currentRow);
-//        }
-//        JavaRDD<Vector> rows = JavaSparkContext.fromSparkContext(sc).parallelize(rowsList);
-//
-//        // Create a RowMatrix from JavaRDD<Vector>.
-//        RowMatrix mat = new RowMatrix(rows.rdd());
-//
-//        // Compute the top 4 singular values and corresponding singular vectors.
-//        SingularValueDecomposition<RowMatrix, Matrix> svd = mat.computeSVD(4, true, 1.0E-9d);// TODO: meaning of 3rd argument
-//        RowMatrix U = svd.U();
-//        Vector s = svd.s();
-//        Matrix V = svd.V();
+        SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
+        SparkContext  sc = new SparkContext (sparkConf);
+        JavaSparkContext jsc = JavaSparkContext.fromSparkContext(sc); //new JavaSparkContext(sparkConf);
         
-        getVectorforWord();
+        // 要求源数据为一篇文章一行
+        JavaRDD<String> docs = jsc.textFile("data/svd/reurers21578/news.txt"); // Load documents (one per line).
+        JavaRDD<Iterable<String>> dataset = docs.map(new Function<String, Iterable<String>>(){
+            @Override
+            public Iterable<String> call(String t) throws Exception {
+                return Arrays.asList(t.split(" "));
+            }
+        });
+//	    JavaRDD<String> dataset = docs.flatMap(new FlatMapFunction<String, String>(){
+//	      @Override
+//	      public Iterable<String> call(String t) throws Exception {
+//	          return Arrays.asList(t.split(" "));
+//	      }
+//	    });
+        
+        // TF-IDF 
+//      Term Frequency (tf)：即此Term 在此文档中出现了多少次。tf 越大说明越重要。
+//      Document Frequency (df)：即有多少文档包含次Term。df 越大说明越不重要。
+        HashingTF tf = new HashingTF();
+        JavaRDD<Vector> tfResult = tf.transform(dataset).cache();
+        IDF idf = new IDF();
+        IDFModel idfModel = idf.fit(tfResult);
+        JavaRDD<Vector> tfIdfResult = idfModel.transform(tfResult);
+        
+        // Create a RowMatrix from JavaRDD<Vector>.
+        RowMatrix mat = new RowMatrix(tfIdfResult.rdd());
+
+        // Compute the top 4 singular values and corresponding singular vectors.
+        SingularValueDecomposition<RowMatrix, Matrix> svd = mat.computeSVD(4, true, 1.0E-9d);// TODO: meaning of 3rd argument
+        RowMatrix U = svd.U();
+        Vector s = svd.s();
+        Matrix V = svd.V();
+        
+        System.out.println(U);
+        System.out.println("-------------------");
+    	System.out.println(s);
+        System.out.println("-------------------");
+        System.out.println(V);
+        
+        //getVectorforWord();
+    }
+    
+    public static void getNewsFile(String startStr, String endStr) {
+    	String input = "svd/reuters21578/news.txt";
+    	File inputFile = new File(input);
+    	List<String> fileContent;
+		try {
+			fileContent = Files.readAllLines( Paths.get(input), Charset.forName("UTF-8"));
+			boolean start = false;
+	    	List<String> outputFileContent = new ArrayList<String>();
+	    	String tmp = "";
+	    	for (String line : fileContent) {
+	    		if (!start) {
+	    			int idx = line.indexOf(startStr);
+		    		if ( idx >=0 ) {
+		    			start = true;
+		    			
+					}
+	    		} else {
+	    			
+	    		}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    	
     }
     
     public static void getVectorforWord() {
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
         JavaRDD<String> lines = sc.textFile("data/svd/pg158.txt"); //sc.parallelize(Arrays.asList(new String[]{"China shanghai", "apple","IBM", "HP", "Microsoft"}));
-        
-        // TF-IDF 
-//        Term Frequency (tf)：即此Term 在此文档中出现了多少次。tf 越大说明越重要。
-//        Document Frequency (df)：即有多少文档包含次Term。df 越大说明越不重要。
-//        JavaRDD<String> dataset = lines.flatMap(new FlatMapFunction<String, String>(){
-//          @Override
-//          public Iterable<String> call(String t) throws Exception {
-//              return Arrays.asList(t.split(" "));
-//          }
-//        });
+
         JavaRDD<Iterable<String>> dataset = lines.map(new Function<String, Iterable<String>>(){
             @Override
             public Iterable<String> call(String t) throws Exception {
