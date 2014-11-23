@@ -23,8 +23,14 @@ import org.apache.spark.mllib.linalg.Matrix;
 import org.apache.spark.mllib.linalg.SingularValueDecomposition;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.distributed.RowMatrix;
+import org.apache.spark.rdd.RDD;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
 
 import scala.Tuple2;
+import scala.collection.Iterator;
 
 
 /**
@@ -45,12 +51,13 @@ import scala.Tuple2;
 public class SVDAlgorithm {
         
     public static void main(String[] args) {
-        SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
+    	long begin = System.currentTimeMillis();
+        SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local[2]");
         SparkContext  sc = new SparkContext (sparkConf);
         JavaSparkContext jsc = JavaSparkContext.fromSparkContext(sc); //new JavaSparkContext(sparkConf);
         
         // 要求源数据为一篇文章一行
-        JavaRDD<String> docs = jsc.textFile("data/svd/reurers21578/news.txt"); // Load documents (one per line).
+        JavaRDD<String> docs = jsc.textFile("data/svd/reuters21578/news.txt"); // Load documents (one per line).
         JavaRDD<Iterable<String>> dataset = docs.map(new Function<String, Iterable<String>>(){
             @Override
             public Iterable<String> call(String t) throws Exception {
@@ -65,56 +72,88 @@ public class SVDAlgorithm {
 //	    });
         
         // TF-IDF 
-//      Term Frequency (tf)：即此Term 在此文档中出现了多少次。tf 越大说明越重要。
-//      Document Frequency (df)：即有多少文档包含次Term。df 越大说明越不重要。
+        // Term Frequency (tf)：即此Term 在此文档中出现了多少次。tf 越大说明越重要。
+        // Document Frequency (df)：即有多少文档包含次Term。df 越大说明越不重要。
         HashingTF tf = new HashingTF();
         JavaRDD<Vector> tfResult = tf.transform(dataset).cache();
         IDF idf = new IDF();
         IDFModel idfModel = idf.fit(tfResult);
         JavaRDD<Vector> tfIdfResult = idfModel.transform(tfResult);
-        
+        long endOfTFIDF = System.currentTimeMillis();
+        System.out.println(endOfTFIDF - begin);
         // Create a RowMatrix from JavaRDD<Vector>.
         RowMatrix mat = new RowMatrix(tfIdfResult.rdd());
 
-        // Compute the top 4 singular values and corresponding singular vectors.
-        SingularValueDecomposition<RowMatrix, Matrix> svd = mat.computeSVD(4, true, 1.0E-9d);// TODO: meaning of 3rd argument
-        RowMatrix U = svd.U();
-        Vector s = svd.s();
-        Matrix V = svd.V();
+        // Compute the top 20 singular values and corresponding singular vectors.
+        // 第一个参数20意味着取top 20个奇异值，第二个参数true意味着计算矩阵U，第三个参数意味小于1.0E-9d的奇异值将被抛弃
+        SingularValueDecomposition<RowMatrix, Matrix> svd = mat.computeSVD(20, true, 1.0E-9d);// TODO: meaning of 3rd argument
+        // A = U * s *V
+        RowMatrix U = svd.U(); //矩阵U
+        Vector s = svd.s(); //奇异值
+        Matrix V = svd.V(); //矩阵V 
+       
+        long endOfSVD = System.currentTimeMillis();
+        System.out.println(endOfSVD - endOfTFIDF);
         
-        System.out.println(U);
+        System.out.println(U); // 20 cols, 925 rows
+        RDD<Vector> vec = U.rows();
+        Iterator<Vector> it = vec.toLocalIterator();
+        while (it.hasNext()) {
+        	Vector tmp = it.next();
+        	System.out.println(biggestIdx(tmp));
+        }
+        
         System.out.println("-------------------");
     	System.out.println(s);
         System.out.println("-------------------");
-        System.out.println(V);
+        //System.out.println(V.numRows()); // 20 cols, 1048576 rows
         
         //getVectorforWord();
+        
+        
     }
     
-    public static void getNewsFile(String startStr, String endStr) {
-    	String input = "svd/reuters21578/news.txt";
+    public static int biggestIdx(Vector vec){
+    	double[] d = vec.toArray();
+    	int biggestIdx = 0;
+    	double currVal = d[0];
+    	for (int i = 1; i < d.length; i++) {
+			if (d[i] > currVal){
+				currVal = d[i];
+				biggestIdx = i;
+			}
+		}
+    	return biggestIdx;
+    }
+    
+    public static void main2(String[] args) {
+    	getNewsFile();
+	}
+    
+    public static void getNewsFile() {
+    	String input = "data/svd/reuters21578/news.xml";
     	File inputFile = new File(input);
     	List<String> fileContent;
+    	StringBuilder strB = new StringBuilder();
 		try {
 			fileContent = Files.readAllLines( Paths.get(input), Charset.forName("UTF-8"));
-			boolean start = false;
-	    	List<String> outputFileContent = new ArrayList<String>();
-	    	String tmp = "";
-	    	for (String line : fileContent) {
-	    		if (!start) {
-	    			int idx = line.indexOf(startStr);
-		    		if ( idx >=0 ) {
-		    			start = true;
-		    			
-					}
-	    		} else {
-	    			
-	    		}
+	    	for (String string : fileContent) {
+				strB.append(string);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-    	
+    	Document xmlDoc = Jsoup.parse(strB.toString(),"", Parser.xmlParser());
+    	Elements elements = xmlDoc.select("BODY");
+    	List<String> lines = new ArrayList<String>();
+    	for (int i=0; i<elements.size(); i++){
+    		lines.add(elements.get(i).text());
+    	}
+    	try {
+			Files.write(Paths.get("data/svd/reuters21578/news.txt"), lines, Charset.forName("UTF-8"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
     }
     
     public static void getVectorforWord() {
