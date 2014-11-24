@@ -31,12 +31,13 @@ public class NaiveBayesAlgorithm {
         
         // TODO: 输入数据往往不是数字形式的需要转换  String -> Double.
         // Question1: 怎么保证一一对应？
-        // 属性1：发件人邮件地址 aaa@hp.com  hashcode() ? MD5 ? or sequence number ?
+        // 属性1：发件人邮件地址 aaa@hp.com  hashcode() ? MD5 ? or sequence number ? 优点：多次计算结果一样。缺点：不能保证不重复。
         // 属性2：topic ID
-        // 属性3: To OR Cc
+        // 属性3:To OR Cc
         // Label: reply OR forward OR Delete
         // Question2: 怎么保存? Use simple Map ?  Use in-memory Database?
-        MapWithSeqValue mayWithSeqValue = new MapWithSeqValue();
+        MapWithSeqValue sender = new MapWithSeqValue();
+        sender.add("abc@hp.com");
         // TODO: prepare testing data.
         
         JavaRDD<String> data = sc.textFile("data/naiveBayes/wine.data.txt");

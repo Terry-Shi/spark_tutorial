@@ -52,24 +52,20 @@ public class SVDAlgorithm {
         
     public static void main(String[] args) {
     	long begin = System.currentTimeMillis();
-        SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local[2]");
+        SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local[4]");
         SparkContext  sc = new SparkContext (sparkConf);
         JavaSparkContext jsc = JavaSparkContext.fromSparkContext(sc); //new JavaSparkContext(sparkConf);
         
-        // 要求源数据为一篇文章一行
-        JavaRDD<String> docs = jsc.textFile("data/svd/reuters21578/news.txt"); // Load documents (one per line).
+        // Load from collection 
+        // jsc.parallelize(List);
+        
+        JavaRDD<String> docs = jsc.textFile("data/svd/reuters21578/news.txt"); // Load documents (one news per line).
         JavaRDD<Iterable<String>> dataset = docs.map(new Function<String, Iterable<String>>(){
             @Override
             public Iterable<String> call(String t) throws Exception {
                 return Arrays.asList(t.split(" "));
             }
         });
-//	    JavaRDD<String> dataset = docs.flatMap(new FlatMapFunction<String, String>(){
-//	      @Override
-//	      public Iterable<String> call(String t) throws Exception {
-//	          return Arrays.asList(t.split(" "));
-//	      }
-//	    });
         
         // TF-IDF 
         // Term Frequency (tf)：即此Term 在此文档中出现了多少次。tf 越大说明越重要。
@@ -80,7 +76,7 @@ public class SVDAlgorithm {
         IDFModel idfModel = idf.fit(tfResult);
         JavaRDD<Vector> tfIdfResult = idfModel.transform(tfResult);
         long endOfTFIDF = System.currentTimeMillis();
-        System.out.println(endOfTFIDF - begin);
+        System.out.println("*********" + (endOfTFIDF - begin) + "***********");
         // Create a RowMatrix from JavaRDD<Vector>.
         RowMatrix mat = new RowMatrix(tfIdfResult.rdd());
 
@@ -93,14 +89,17 @@ public class SVDAlgorithm {
         Matrix V = svd.V(); //矩阵V 
        
         long endOfSVD = System.currentTimeMillis();
-        System.out.println(endOfSVD - endOfTFIDF);
+        System.out.println("*********" + (endOfSVD - endOfTFIDF) + "***********");
         
         System.out.println(U); // 20 cols, 925 rows
         RDD<Vector> vec = U.rows();
         Iterator<Vector> it = vec.toLocalIterator();
+        int idx = 0;
         while (it.hasNext()) {
         	Vector tmp = it.next();
-        	System.out.println(biggestIdx(tmp));
+        	double[] d = tmp.toArray();
+        	int biggestIdx = biggestIdx(tmp);
+        	System.out.println(idx++ + " " + biggestIdx + " " + d[biggestIdx]);
         }
         
         System.out.println("-------------------");
@@ -109,8 +108,6 @@ public class SVDAlgorithm {
         //System.out.println(V.numRows()); // 20 cols, 1048576 rows
         
         //getVectorforWord();
-        
-        
     }
     
     public static int biggestIdx(Vector vec){
@@ -126,7 +123,7 @@ public class SVDAlgorithm {
     	return biggestIdx;
     }
     
-    public static void main2(String[] args) {
+    public static void main1(String[] args) {
     	getNewsFile();
 	}
     
@@ -138,12 +135,12 @@ public class SVDAlgorithm {
 		try {
 			fileContent = Files.readAllLines( Paths.get(input), Charset.forName("UTF-8"));
 	    	for (String string : fileContent) {
-				strB.append(string);
+				strB.append(string).append(" ");
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-    	Document xmlDoc = Jsoup.parse(strB.toString(),"", Parser.xmlParser());
+    	Document xmlDoc = Jsoup.parse(strB.toString(), "", Parser.xmlParser());
     	Elements elements = xmlDoc.select("BODY");
     	List<String> lines = new ArrayList<String>();
     	for (int i=0; i<elements.size(); i++){
