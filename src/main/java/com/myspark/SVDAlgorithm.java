@@ -22,6 +22,7 @@ import org.apache.spark.mllib.feature.Word2VecModel;
 import org.apache.spark.mllib.linalg.Matrix;
 import org.apache.spark.mllib.linalg.SingularValueDecomposition;
 import org.apache.spark.mllib.linalg.Vector;
+import org.apache.spark.mllib.linalg.Vectors;
 import org.apache.spark.mllib.linalg.distributed.RowMatrix;
 import org.apache.spark.rdd.RDD;
 import org.jsoup.Jsoup;
@@ -50,7 +51,7 @@ import scala.collection.Iterator;
  */
 public class SVDAlgorithm {
         
-    public static void main(String[] args) {
+    public static void main1(String[] args) {
     	long begin = System.currentTimeMillis();
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local[4]");
         SparkContext  sc = new SparkContext (sparkConf);
@@ -58,7 +59,7 @@ public class SVDAlgorithm {
         
         // Load from collection 
         // jsc.parallelize(List);
-        
+        // Load from file
         JavaRDD<String> docs = jsc.textFile("data/svd/reuters21578/news.txt"); // Load documents (one news per line).
         JavaRDD<Iterable<String>> dataset = docs.map(new Function<String, Iterable<String>>(){
             @Override
@@ -123,10 +124,14 @@ public class SVDAlgorithm {
     	return biggestIdx;
     }
     
-    public static void main1(String[] args) {
-    	getNewsFile();
-	}
+//    public static void main(String[] args) {
+//    	getNewsFile();
+//	}
     
+    /**
+     * Get news from file. clean all the XML tags
+     * 
+     */
     public static void getNewsFile() {
     	String input = "data/svd/reuters21578/news.xml";
     	File inputFile = new File(input);
@@ -153,6 +158,10 @@ public class SVDAlgorithm {
 		}
     }
     
+    public static void main(String[] args) {
+        getVectorforWord();
+    }
+    
     public static void getVectorforWord() {
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
@@ -167,16 +176,21 @@ public class SVDAlgorithm {
         System.out.println(dataset.collect());
         
         // 根据输入的词的集合计算出词与词直接的距离
-        Word2Vec word2vec = new Word2Vec();
+        Word2Vec word2vec = new Word2Vec(); 
+        word2vec.setVectorSize(101); // size of vector, default value = 100
         Word2VecModel model = word2vec.fit(dataset);
         
-        // 输入计算距离的命令即可计算与每个词最接近的词 (0-1)。 TODO:"接近"的实际含义是？数学含义是余弦函数的值
+        // 输入计算距离的命令即可计算与每个词最接近的词 (0-1)。 TODO:"接近"的实际含义是->数学含义是余弦函数的值
         Tuple2<String, Object>[] synonyms = model.findSynonyms("Emma", 3); // 3 means how many words in the return value.
         for (int i = 0; i < synonyms.length; i++) {
             System.out.println(synonyms[i]._1 + " --- " + synonyms[i]._2);
         }
-        Vector vec = model.transform("Emma");
-                
+        Vector vecEmma = model.transform("Emma");
+        System.out.println("Emma size = " + vecEmma.size());
+        Vector vecHarriet = model.transform("Harriet");
+        System.out.println("Harriet size = " + vecHarriet.size());
+        //Vector sum = vecEmma + vecHarriet; 
+        
         // TODO: why findSynonyms("apple") is not working.
     }
 }

@@ -11,6 +11,8 @@ import org.apache.spark.api.java.function.Function;
  */
 public class SimpleApp {
     public static void main(String[] args) {
+        System.setProperty("hadoop.home.dir", "c:\\\\temp\\winutil\\");
+        
         String logFile = "README.md"; // Should be some file on your system
         SparkConf conf = new SparkConf().setAppName("Simple Application");
         conf.setMaster("local");
@@ -32,7 +34,7 @@ public class SimpleApp {
             public Boolean call(String s) {
                 return s.contains("a");
             }
-        }).saveAsTextFile("data/fileContainsA.txt");
+        }).saveAsTextFile("data/fileContainsA");
         
         long numBs = logData.filter(new Function<String, Boolean>() {
             public Boolean call(String s) {

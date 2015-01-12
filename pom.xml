@@ -13,15 +13,26 @@
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_2.10</artifactId>
-      <version>1.1.0</version>
+      <version>1.2.0</version>
     </dependency>
   
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-mllib_2.10</artifactId>
-      <version>1.1.0</version>
+      <version>1.2.0</version>
     </dependency>
+    
+    
     <!-- Spark dependency END -->
+    
+    <!-- Hadoop dependency BEGIN -->
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client</artifactId>
+        <version>2.6.0</version>
+    </dependency>
+    <!-- Hadoop dependency END -->
+    
     
     <!-- jsoup是HTML解析器，可直接解析某个 URL 地址、HTML 文本内容。它提供了一套非常省力的 API，可通过 DOM，CSS 以及类似于 jQuery 的操作方法来取出和操作数据。
      http://www.ibm.com/developerworks/cn/java/j-lo-jsouphtml/

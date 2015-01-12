@@ -1,5 +1,6 @@
 package com.myspark;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,21 +30,18 @@ public class NaiveBayesAlgorithm {
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
         
-        // TODO: 输入数据往往不是数字形式的需要转换  String -> Double.
+        // TODO: 输入数据往往不是数字形式的需要 类型转换  String -> Double.
         // Question1: 怎么保证一一对应？
         // 属性1：发件人邮件地址 aaa@hp.com  hashcode() ? MD5 ? or sequence number ? 优点：多次计算结果一样。缺点：不能保证不重复。
-        // 属性2：topic ID
+        // 属性2：Topic ID
         // 属性3:To OR Cc
         // Label: reply OR forward OR Delete
-        // Question2: 怎么保存? Use simple Map ?  Use in-memory Database?
-        MapWithSeqValue sender = new MapWithSeqValue();
-        sender.add("abc@hp.com");
-        // TODO: prepare testing data.
-        
+        // Question2: 怎么保存?  Map? embedded Database?
+       
         JavaRDD<String> data = sc.textFile("data/naiveBayes/wine.data.txt");
-        //NaiveBayesModel model = createModelWithWineData(data);
+        NaiveBayesModel model = createModelWithWineData(data);
         
-        evaluation(formatWineData(data));
+        //evaluation(formatWineData(data));
         
         // NaiveBayesModel model = createModelWithDataTxt(sc, sc.textFile("data/naiveBayes/data.txt"));
         
@@ -56,8 +54,8 @@ public class NaiveBayesAlgorithm {
 //        JavaRDD<LabeledPoint> parsedData = sc.parallelize(inputData);
         
         // 训练模型， Additive smoothing的值为1.0（默认值）
-//        final NaiveBayesModel model = NaiveBayes.train(training.rdd(), 1.0);
-//        saveModelFile(sc, "data/naiveBayes/model", model);
+        //final NaiveBayesModel model = NaiveBayes.train(data, 1.0);
+        saveModelFile(sc,model, "data/naiveBayes/model", true);
         
         //NaiveBayesModel model = loadModelFile(sc, "data/naiveBayes/model");
     
@@ -127,9 +125,33 @@ public class NaiveBayesAlgorithm {
     }
     
     
-    public static void saveModelFile(JavaSparkContext sc, String path, NaiveBayesModel model) {
+//    public static void saveModelFile(JavaSparkContext sc, String path, NaiveBayesModel model, boolean forceOverwrite) {
+//        JavaRDD<NaiveBayesModel> persistModel = sc.parallelize(Arrays.asList(new NaiveBayesModel[]{model}));
+//        persistModel.saveAsObjectFile(path);
+//    }
+    
+    public static void saveModelFile(JavaSparkContext sc, NaiveBayesModel model, String modelOutputPath, boolean forceOverwrite) {
+        if (forceOverwrite) {
+            deleteDir(new File(modelOutputPath));
+        }
+        
         JavaRDD<NaiveBayesModel> persistModel = sc.parallelize(Arrays.asList(new NaiveBayesModel[]{model}));
-        persistModel.saveAsObjectFile(path);
+        persistModel.saveAsObjectFile(modelOutputPath);
+    }
+    
+    private static boolean deleteDir(File dir) {
+        if (dir.isDirectory()) {
+            String[] children = dir.list();
+            //递归删除目录中的子目录下
+            for (int i=0; i< children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        // 目录此时为空，可以删除
+        return dir.delete();
     }
     
     public static NaiveBayesModel loadModelFile(JavaSparkContext sc, String path) {
