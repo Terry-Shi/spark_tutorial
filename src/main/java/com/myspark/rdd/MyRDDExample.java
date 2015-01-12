@@ -35,11 +35,11 @@ public class MyRDDExample {
         SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount");
         JavaSparkContext sc = new JavaSparkContext(conf);
         
-        // map(sc);
+        map(sc);
         // flatMap(sc);
         //mapToPair(sc);
 //        reduceByKey(sc);
-        reduce(sc);
+//        reduce(sc);
         
         sc.close();
     }
@@ -59,9 +59,10 @@ public class MyRDDExample {
                 return v1.length();
             }});
         
-        FileUtil.deleteDir( new File("data/rdd/map_output") );
+//        FileUtil.deleteDir( new File("data/rdd/map_output") );
+//        newRDD.saveAsTextFile("data/rdd/map_output");
         
-        newRDD.saveAsTextFile("data/rdd/map_output");
+        System.out.println(newRDD.toArray().toString());
     }
     
     /**
