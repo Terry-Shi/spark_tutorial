@@ -11,7 +11,7 @@ import scala.Tuple2;
 
 /**
  * 1. Try a Spark streaming example
- * 2. 
+ * ref: https://spark.apache.org/docs/latest/streaming-programming-guide.html
  * @author shijie
  *
  */
@@ -23,12 +23,14 @@ public class SparkStreamingExample {
         // Create a local StreamingContext with two working thread and batch
         // interval of 1 second
         SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount");
-        JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(1));
+        JavaStreamingContext jssc = new JavaStreamingContext(conf, new Duration(10000)); //Durations.seconds(10)
 
         // Create a DStream that will connect to hostname:port, like
         // localhost:9999
-        JavaReceiverInputDStream<String> lines = jssc.socketTextStream("localhost", 9999); // QUESTION: 除了socketText还有几种输入stream？
-
+        JavaReceiverInputDStream<String> lines = jssc.socketTextStream("localhost", 9999);
+        // QUESTION: 除了socketText还有几种输入stream？ actorStream, fileStream, queueStream, textFileStream, rawSocketStream
+        // 官方直接支持的输出端有哪些 JDBC， HBase ？
+        
         // Split each line into words
         JavaDStream<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
             @Override

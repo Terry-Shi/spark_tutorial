@@ -3,6 +3,7 @@ package com.myspark.rdd;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
@@ -35,15 +36,20 @@ public class MyRDDExample {
         SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount");
         JavaSparkContext sc = new JavaSparkContext(conf);
         
-        map(sc);
+//        map(sc);
         // flatMap(sc);
         //mapToPair(sc);
 //        reduceByKey(sc);
 //        reduce(sc);
+        mapValues(sc);
         
         sc.close();
     }
 
+    // --------------------------------------------------------------------------------------------
+    //                                transform
+    // --------------------------------------------------------------------------------------------
+    
     /**
      * map是对RDD中的每个元素都执行一个指定的函数来产生一个新的RDD。任何原RDD中的元素在新RDD中都有且只有一个元素与之对应。
      * 
@@ -62,7 +68,64 @@ public class MyRDDExample {
 //        FileUtil.deleteDir( new File("data/rdd/map_output") );
 //        newRDD.saveAsTextFile("data/rdd/map_output");
         
-        System.out.println(newRDD.toArray().toString());
+        System.out.println(newRDD.toArray());
+    }
+    
+    
+    /**
+     * TODO: mapPartitions
+     * @param sc
+     */
+    public static void mapPartitions(JavaSparkContext sc) {
+        List<Tuple2<String, Integer>> list = new ArrayList<Tuple2<String, Integer>>();
+        list.add(new Tuple2("word1", 1));
+        list.add(new Tuple2("word2", 1));
+        list.add(new Tuple2("word3", 1));
+        list.add(new Tuple2("word3", 1));
+        JavaPairRDD<String, Integer> oldRDD = sc.parallelizePairs(list);
+        oldRDD.mapPartitions(new FlatMapFunction<Iterator<Tuple2<String, Integer>>, Integer>() {
+            @Override
+            public Iterable<Integer> call(Iterator<Tuple2<String, Integer>> t) throws Exception {
+                // TODO Auto-generated method stub
+                return null;
+            }
+        });
+    }
+    
+    
+    /**
+     * mapValues顾名思义就是输入函数应用于RDD中Kev-Value的Value，原RDD中的Key保持不变，与新的Value一起组成新的RDD中的元素。
+     * 因此，该函数只适用于元素为KV对的RDD。
+     * @param sc
+     */
+    public static void mapValues(JavaSparkContext sc) {
+        List<Tuple2<String, Integer>> list = new ArrayList<Tuple2<String, Integer>>();
+        list.add(new Tuple2("word1", 1));
+        list.add(new Tuple2("word2", 1));
+        list.add(new Tuple2("word3", 1));
+        list.add(new Tuple2("word3", 1));
+        JavaPairRDD<String, Integer> oldRDD = sc.parallelizePairs(list);
+        
+        
+        
+        JavaPairRDD<String, String> newRDD = oldRDD.mapValues(new Function<Integer, String>(){
+            @Override
+            public String call(Integer v1) throws Exception {
+                return v1 + "_changed";
+            }
+        });
+        System.out.println(newRDD.toArray());
+    }
+    
+    /**
+     * (already removed)
+     * mapWith是map的另外一个变种，map只需要一个输入函数，而mapWith有两个输入函数。它的定义如下：
+     * 第一个函数constructA是把RDD的partition index（index从0开始）作为输入，输出为新类型A；
+     * 第二个函数f是把二元组(T, A)作为输入（其中T为原RDD中的元素，A为第一个函数的输出），输出类型为U。
+     * @param sc
+     */
+    public static void mapWith(JavaSparkContext sc) {
+        
     }
     
     /**
@@ -113,14 +176,6 @@ public class MyRDDExample {
      * @param sc
      */
     public static void reduce(JavaSparkContext sc) {
-//        List<Tuple2<String, Integer>> list = new ArrayList<Tuple2<String, Integer>>();
-//        list.add(new Tuple2("word1", 1));
-//        list.add(new Tuple2("word2", 1));
-//        list.add(new Tuple2("word3", 1));
-//        list.add(new Tuple2("word3", 1));
-//        
-//        JavaPairRDD<String, Integer> oldRDD = sc.parallelizePairs(list);
-        
         JavaRDD<Integer> oldRDD = sc.parallelize(Arrays.asList(1, 2, 1, 1));
         
         Integer result = oldRDD.reduce(new Function2<Integer, Integer, Integer>(){
@@ -172,4 +227,8 @@ public class MyRDDExample {
         wordCounts.saveAsTextFile("data/rdd/reduceByKey");
     }
     
+    // --------------------------------------------------------------------------------------------
+    //                                action
+    // --------------------------------------------------------------------------------------------
+
 }
