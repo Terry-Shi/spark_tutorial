@@ -33,15 +33,15 @@ public class MyRDDExample {
     public static void main(String[] args) {
         System.setProperty("hadoop.home.dir", "c:\\\\temp\\winutil\\");
         
-        SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount");
+        SparkConf conf = new SparkConf().setMaster("local").setAppName("NetworkWordCount");
         JavaSparkContext sc = new JavaSparkContext(conf);
         
 //        map(sc);
         // flatMap(sc);
         //mapToPair(sc);
-//        reduceByKey(sc);
+        reduceByKey(sc);
 //        reduce(sc);
-        mapValues(sc);
+//        mapValues(sc);
         
         sc.close();
     }
@@ -170,7 +170,10 @@ public class MyRDDExample {
         newRDD.saveAsTextFile("data/rdd/mapToPair");
     }
     
-    
+    // --------------------------------------------------------------------------------------------
+    //                                action
+    // --------------------------------------------------------------------------------------------
+
     /**
      * reduce将RDD中元素两两传递给输入函数，同时产生一个新的值，新产生的值与RDD中下一个元素再被传递给输入函数直到最后只有一个值为止。
      * @param sc
@@ -220,15 +223,13 @@ public class MyRDDExample {
                     public Integer call(Integer i1, Integer i2) throws Exception {
                         return i1 + i2;
                     }
-                });
+                }).cache();
         
-        
-        FileUtil.deleteDir( new File("data/rdd/reduceByKey") );
-        wordCounts.saveAsTextFile("data/rdd/reduceByKey");
+        wordCounts = wordCounts.sortByKey();
+        System.out.println(wordCounts.collect());
+//        FileUtil.deleteDir( new File("data/rdd/reduceByKey") );
+//        wordCounts.saveAsTextFile("data/rdd/reduceByKey");
     }
     
-    // --------------------------------------------------------------------------------------------
-    //                                action
-    // --------------------------------------------------------------------------------------------
 
 }
