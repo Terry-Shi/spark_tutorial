@@ -53,7 +53,7 @@ public class SVDAlgorithm {
         
     public static void main1(String[] args) {
     	long begin = System.currentTimeMillis();
-        SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local[4]");
+        SparkConf sparkConf = new SparkConf().setAppName("SVD").setMaster("local[4]");
         SparkContext  sc = new SparkContext (sparkConf);
         JavaSparkContext jsc = JavaSparkContext.fromSparkContext(sc); //new JavaSparkContext(sparkConf);
         
@@ -70,7 +70,9 @@ public class SVDAlgorithm {
         
         // TF-IDF 
         // Term Frequency (tf)：即此Term 在此文档中出现了多少次。tf 越大说明越重要。
-        // Document Frequency (df)：即有多少文档包含次Term。df 越大说明越不重要。
+        //    tf(t, d) = (number of times term t appears in document d) / (total number of terms in document d)
+        // Document Frequency (df)：即有多少文档包含Term。df 越大说明越不重要。
+        //    idf(t) = ln(total number of documents in corpus / (1 + number of documents with term t))
         HashingTF tf = new HashingTF();
         JavaRDD<Vector> tfResult = tf.transform(dataset).cache();
         IDF idf = new IDF();
