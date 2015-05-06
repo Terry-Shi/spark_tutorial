@@ -180,7 +180,7 @@ public class NaiveBayesAlgorithm {
         RDD<LabeledPoint>[] splits = parsedData.randomSplit(new double[]{0.7, 0.3}, 11L);
         JavaRDD<LabeledPoint> training = splits[0].toJavaRDD();
         JavaRDD<LabeledPoint> test = splits[1].toJavaRDD();
-        
+        System.out.println("Actual value = " + test.toArray().toString());
         final NaiveBayesModel model = NaiveBayes.train(training.rdd(), 1.0); 
         JavaRDD<Double> prediction = test.map(new Function<LabeledPoint, Double>() {
             @Override
@@ -188,7 +188,7 @@ public class NaiveBayesAlgorithm {
                 return model.predict(v1.features());
             }
         });
-        System.out.println("JavaRDD<Double> prediction = " + prediction.toArray().toString());
+        System.out.println("Prediction = " + prediction.toArray().toString());
         
         // TODO: http://www.adamcrume.com/blog/archive/2014/02/19/fixing-sparks-rdd-zip
         JavaPairRDD<Double, LabeledPoint> predictionAndLabel = prediction.zip(test);
