@@ -6,6 +6,7 @@ import org.apache.spark.api.java.*;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.mllib.clustering.DistributedLDAModel;
 import org.apache.spark.mllib.clustering.LDA;
+import org.apache.spark.mllib.clustering.LDAModel;
 import org.apache.spark.mllib.linalg.Matrix;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.mllib.linalg.Vectors;
@@ -38,7 +39,7 @@ public class JavaLDAExample {
         corpus.cache();
 
         // Cluster the documents into three topics using LDA
-        DistributedLDAModel ldaModel = new LDA().setK(3).run(corpus);
+        LDAModel ldaModel = new LDA().setK(3).run(corpus);
 
         // Output topics. Each is a distribution over words (matching word count
         // vectors)
