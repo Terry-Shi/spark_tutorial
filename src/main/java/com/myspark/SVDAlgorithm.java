@@ -51,7 +51,7 @@ import scala.collection.Iterator;
  */
 public class SVDAlgorithm {
         
-    public static void main1(String[] args) {
+    public static void main(String[] args) {
     	long begin = System.currentTimeMillis();
         SparkConf sparkConf = new SparkConf().setAppName("SVD").setMaster("local[4]");
         SparkContext  sc = new SparkContext (sparkConf);
@@ -75,42 +75,54 @@ public class SVDAlgorithm {
         //    idf(t) = ln(total number of documents in corpus / (1 + number of documents with term t))
         HashingTF tf = new HashingTF();
         JavaRDD<Vector> tfResult = tf.transform(dataset).cache();
+        // TODO: check the value of TF
+        System.out.println("tf.indexOf(\"week\") = " + tf.indexOf("week"));
+        System.out.println("tf.numFeatures() = " + tf.numFeatures());
+
+        java.util.Iterator<Vector> it = tfResult.toLocalIterator();
+//        while (it.hasNext()) {
+//            Vector v = it.next();
+//            System.out.println(v.toString());
+//        }
+        
         IDF idf = new IDF();
         IDFModel idfModel = idf.fit(tfResult);
         JavaRDD<Vector> tfIdfResult = idfModel.transform(tfResult);
         long endOfTFIDF = System.currentTimeMillis();
-        System.out.println("*********" + (endOfTFIDF - begin) + "***********");
-        // Create a RowMatrix from JavaRDD<Vector>.
-        RowMatrix mat = new RowMatrix(tfIdfResult.rdd());
-
-        // Compute the top 20 singular values and corresponding singular vectors.
-        // 第一个参数20意味着取top 20个奇异值，第二个参数true意味着计算矩阵U，第三个参数意味小于1.0E-9d的奇异值将被抛弃
-        SingularValueDecomposition<RowMatrix, Matrix> svd = mat.computeSVD(20, true, 1.0E-9d);// TODO: meaning of 3rd argument
-        // A = U * s *V
-        RowMatrix U = svd.U(); //矩阵U
-        Vector s = svd.s(); //奇异值
-        Matrix V = svd.V(); //矩阵V 
-       
-        long endOfSVD = System.currentTimeMillis();
-        System.out.println("*********" + (endOfSVD - endOfTFIDF) + "***********");
+        System.out.println("********* Cost time: " + (endOfTFIDF - begin) + "***********");
         
-        System.out.println(U); // 20 cols, 925 rows
-        RDD<Vector> vec = U.rows();
-        Iterator<Vector> it = vec.toLocalIterator();
-        int idx = 0;
-        while (it.hasNext()) {
-        	Vector tmp = it.next();
-        	double[] d = tmp.toArray();
-        	int biggestIdx = biggestIdx(tmp);
-        	System.out.println(idx++ + " " + biggestIdx + " " + d[biggestIdx]);
-        }
         
-        System.out.println("-------------------");
-    	System.out.println(s);
-        System.out.println("-------------------");
-        //System.out.println(V.numRows()); // 20 cols, 1048576 rows
-        
-        //getVectorforWord();
+//        // Create a RowMatrix from JavaRDD<Vector>.
+//        RowMatrix mat = new RowMatrix(tfIdfResult.rdd());
+//
+//        // Compute the top 20 singular values and corresponding singular vectors.
+//        // 第一个参数20意味着取top 20个奇异值，第二个参数true意味着计算矩阵U，第三个参数意味小于1.0E-9d的奇异值将被抛弃
+//        SingularValueDecomposition<RowMatrix, Matrix> svd = mat.computeSVD(20, true, 1.0E-9d);// TODO: meaning of 3rd argument
+//        // A = U * s *V
+//        RowMatrix U = svd.U(); //矩阵U
+//        Vector s = svd.s(); //奇异值
+//        Matrix V = svd.V(); //矩阵V 
+//       
+//        long endOfSVD = System.currentTimeMillis();
+//        System.out.println("*********" + (endOfSVD - endOfTFIDF) + "***********");
+//        
+//        System.out.println(U); // 20 cols, 925 rows
+//        RDD<Vector> vec = U.rows();
+//        Iterator<Vector> it = vec.toLocalIterator();
+//        int idx = 0;
+//        while (it.hasNext()) {
+//        	Vector tmp = it.next();
+//        	double[] d = tmp.toArray();
+//        	int biggestIdx = biggestIdx(tmp);
+//        	System.out.println(idx++ + " " + biggestIdx + " " + d[biggestIdx]);
+//        }
+//        
+//        System.out.println("-------------------");
+//    	System.out.println(s);
+//        System.out.println("-------------------");
+//        //System.out.println(V.numRows()); // 20 cols, 1048576 rows
+//        
+//        //getVectorforWord();
     }
     
     public static int biggestIdx(Vector vec){
@@ -160,9 +172,9 @@ public class SVDAlgorithm {
 		}
     }
     
-    public static void main(String[] args) {
-        getVectorforWord();
-    }
+//    public static void main(String[] args) {
+//        getVectorforWord();
+//    }
     
     public static void getVectorforWord() {
         SparkConf sparkConf = new SparkConf().setAppName("Bayes").setMaster("local");
