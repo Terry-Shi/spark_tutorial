@@ -41,7 +41,7 @@ public class NaiveBayesAlgorithm {
         JavaRDD<String> data = sc.textFile("data/naiveBayes/wine.data.txt");
         NaiveBayesModel model = createModelWithWineData(data);
         
-        //evaluation(formatWineData(data));
+        evaluation(formatWineData(data));
         
         // NaiveBayesModel model = createModelWithDataTxt(sc, sc.textFile("data/naiveBayes/data.txt"));
         
