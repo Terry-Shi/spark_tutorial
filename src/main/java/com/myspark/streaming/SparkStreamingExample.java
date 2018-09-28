@@ -28,17 +28,13 @@ public class SparkStreamingExample {
         // Create a DStream that will connect to hostname:port, like
         // localhost:9999
         JavaReceiverInputDStream<String> lines = jssc.socketTextStream("localhost", 9999);
-        // QUESTION: 除了socketText还有几种输入stream？ actorStream, fileStream, queueStream, textFileStream, rawSocketStream
+         
+        // QUESTION: 除了socketTextStream还有几种输入stream？ actorStream, fileStream, queueStream, textFileStream, rawSocketStream
         // 官方直接支持的输出端有哪些 JDBC， HBase ？
         
         // Split each line into words
-        JavaDStream<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
-            @Override
-            public Iterable<String> call(String x) {
-                return Arrays.asList(x.split(" "));
-            }
-        });
-
+        JavaDStream<String> words = lines.flatMap(x -> Arrays.asList(x.split(" ")).iterator());
+        
         // Count each word in each batch
         JavaPairDStream<String, Integer> pairs = words
                 .mapToPair(new PairFunction<String, String, Integer>() {
@@ -60,7 +56,13 @@ public class SparkStreamingExample {
         wordCounts.print();
 
         jssc.start(); // Start the computation
-        jssc.awaitTermination(); // Wait for the computation to terminate
+        try {
+            // Wait for the computation to terminate
+            jssc.awaitTermination();
+            
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } 
 
     }
 }

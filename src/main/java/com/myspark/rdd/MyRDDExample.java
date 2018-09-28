@@ -68,7 +68,7 @@ public class MyRDDExample {
 //        FileUtil.deleteDir( new File("data/rdd/map_output") );
 //        newRDD.saveAsTextFile("data/rdd/map_output");
         
-        System.out.println(newRDD.toArray());
+        System.out.println(newRDD.toString());
     }
     
     
@@ -85,7 +85,7 @@ public class MyRDDExample {
         JavaPairRDD<String, Integer> oldRDD = sc.parallelizePairs(list);
         oldRDD.mapPartitions(new FlatMapFunction<Iterator<Tuple2<String, Integer>>, Integer>() {
             @Override
-            public Iterable<Integer> call(Iterator<Tuple2<String, Integer>> t) throws Exception {
+            public Iterator<Integer> call(Iterator<Tuple2<String, Integer>> t) throws Exception {
                 // TODO Auto-generated method stub
                 return null;
             }
@@ -114,7 +114,7 @@ public class MyRDDExample {
                 return v1 + "_changed";
             }
         });
-        System.out.println(newRDD.toArray());
+        System.out.println(newRDD.toString());
     }
     
     /**
@@ -139,8 +139,8 @@ public class MyRDDExample {
         
         JavaRDD<String> newRDD = oldRDD.flatMap(new FlatMapFunction<String, String>() {
             @Override
-            public Iterable<String> call(String t) throws Exception {
-                return Arrays.asList(t.split(" "));
+            public Iterator<String> call(String t) throws Exception {
+                return Arrays.asList(t.split(" ")).iterator();
             }
         } );
         
@@ -202,8 +202,8 @@ public class MyRDDExample {
          // Split each line into words
         JavaRDD<String> words = oldRDD.flatMap(new FlatMapFunction<String, String>() {
             @Override
-            public Iterable<String> call(String x) {
-                return Arrays.asList(x.split(" "));
+            public Iterator<String> call(String x) {
+                return Arrays.asList(x.split(" ")).iterator();
             }
         });
 

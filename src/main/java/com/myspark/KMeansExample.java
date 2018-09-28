@@ -47,7 +47,7 @@ public class KMeansExample {
         }
         
         JavaRDD<Integer> results = clusters.predict(parsedData);
-        System.out.println(results.toArray());
+        System.out.println(results.toString());
         
         sc.stop();
       }
