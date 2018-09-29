@@ -32,25 +32,28 @@ public class SparkStreamingExample {
         // QUESTION: 除了socketTextStream还有几种输入stream？ actorStream, fileStream, queueStream, textFileStream, rawSocketStream
         // 官方直接支持的输出端有哪些 JDBC， HBase ？
         
-        // Split each line into words
+        // Split each line into words; x表示源数据中的一行字符串
         JavaDStream<String> words = lines.flatMap(x -> Arrays.asList(x.split(" ")).iterator());
         
         // Count each word in each batch
-        JavaPairDStream<String, Integer> pairs = words
-                .mapToPair(new PairFunction<String, String, Integer>() {
-                    @Override
-                    public Tuple2<String, Integer> call(String s) throws Exception {
-                        return new Tuple2<String, Integer>(s, 1);
-                    }
-                });
-        JavaPairDStream<String, Integer> wordCounts = pairs
-                .reduceByKey(new Function2<Integer, Integer, Integer>() {
-                    @Override
-                    public Integer call(Integer i1, Integer i2) throws Exception {
-                        return i1 + i2;
-                    }
-                });
-
+//        JavaPairDStream<String, Integer> pairs = words
+//                .mapToPair(new PairFunction<String, String, Integer>() {
+//                    @Override
+//                    public Tuple2<String, Integer> call(String s) throws Exception {
+//                        return new Tuple2<String, Integer>(s, 1);
+//                    }
+//                });
+        JavaPairDStream<String, Integer> pairs = words.mapToPair(x -> new Tuple2<>(x, 1));
+        
+//        JavaPairDStream<String, Integer> wordCounts = pairs
+//                .reduceByKey(new Function2<Integer, Integer, Integer>() {
+//                    @Override
+//                    public Integer call(Integer i1, Integer i2) throws Exception {
+//                        return i1 + i2;
+//                    }
+//                });
+        JavaPairDStream<String, Integer> wordCounts = pairs.reduceByKey((x,y) -> x+y);
+        
         // Print the first ten elements of each RDD generated in this DStream to
         // the console
         wordCounts.print();
@@ -59,10 +62,11 @@ public class SparkStreamingExample {
         try {
             // Wait for the computation to terminate
             jssc.awaitTermination();
-            
         } catch (InterruptedException e) {
             e.printStackTrace();
-        } 
+        } finally {
+            jssc.close();
+        }
 
     }
 }
